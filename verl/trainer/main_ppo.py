@@ -116,6 +116,7 @@ def main_task(config):
 
     # download the checkpoint from hdfs
     local_path = copy_local_path_from_hdfs(config.actor_rollout_ref.model.path)
+    print(f'local_path: {local_path}')
 
     # instantiate tokenizer
     from verl.utils import hf_tokenizer

@@ -1,3 +1,15 @@
+set -x
+
+export N_GPUS=1
+export BASE_MODEL=/root/autodl-fs/tinyzero/model/Qwen2.5-3B
+# 数据集路径配置，请替换为实际路径
+export DATA_DIR=/root/autodl-fs/tinyzero/data/gsm8k
+export ROLLOUT_TP_SIZE=1
+export EXPERIMENT_NAME=grpo-qwen2_5-1_5b
+export VLLM_ATTENTION_BACKEND=XFORMERS
+export HYDRA_FULL_ERROR=1
+
+
 python3 -m verl.trainer.main_ppo \
 data.train_files=$DATA_DIR/train.parquet \
 data.val_files=$DATA_DIR/test.parquet \
@@ -28,4 +40,5 @@ trainer.save_freq=100 \
 trainer.test_freq=100 \
 trainer.project_name=TinyZero \
 trainer.experiment_name=$EXPERIMENT_NAME \
-trainer.total_epochs=15 2>&1 | tee verl_demo.log
+trainer.total_epochs=15
+# trainer.total_epochs=15 2>&1 | tee verl_demo.log

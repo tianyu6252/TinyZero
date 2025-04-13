@@ -10,7 +10,7 @@ python3 -m verl.trainer.main_ppo \
     data.val_batch_size=1312 \
     data.max_prompt_length=512 \
     data.max_response_length=1024 \
-    actor_rollout_ref.model.path=Qwen/Qwen2-7B-Instruct \
+    actor_rollout_ref.model.path=Qwen/Qwen2.5-3B \
     actor_rollout_ref.model.cache_dir=/root/autodl-fs/tinyzero/model \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=True \
@@ -35,7 +35,7 @@ python3 -m verl.trainer.main_ppo \
     trainer.logger=['console','wandb'] \
     trainer.project_name='verl_grpo_example_gsm8k' \
     trainer.experiment_name='qwen2_5-1_5b-function_rm' \
-    trainer.n_gpus_per_node=8 \
+    trainer.n_gpus_per_node=1 \
     trainer.nnodes=1 \
     trainer.save_freq=-1 \
     trainer.test_freq=5 \
