@@ -204,10 +204,11 @@ class LLM:
         if sampling_params is None:
             # Use default sampling params.
             sampling_params = SamplingParams()
-
         elif isinstance(sampling_params, list) and len(sampling_params) != num_requests:
             raise ValueError("The lengths of prompts and sampling_params "
                              "must be the same.")
+        print(f"debug sampling_params: {sampling_params}")
+
         if multi_modal_data:
             multi_modal_data.data = multi_modal_data.data.to(torch.float16)
 

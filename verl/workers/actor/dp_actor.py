@@ -201,6 +201,7 @@ class DataParallelPPOActor(BasePPOActor):
         return log_probs
 
     def update_policy(self, data: DataProto):
+        print("debug: Start update_policy in dp_actor.py")
         # make sure we are in training mode
         self.actor_module.train()
 

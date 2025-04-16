@@ -248,6 +248,7 @@ class ActorRolloutRefWorker(Worker):
         return actor_module_fsdp, actor_optimizer, actor_lr_scheduler, actor_model_config
 
     def _build_rollout(self):
+        print(f'debug: Building rollout for rank: {self.rank} world_size: {self.world_size}')
         from torch.distributed.device_mesh import init_device_mesh
         # TODO(sgm): support FSDP hybrid shard for larger model
         infer_tp = self.config.rollout.tensor_model_parallel_size
@@ -354,6 +355,7 @@ class ActorRolloutRefWorker(Worker):
 
     @register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO)
     def update_actor(self, data: DataProto):
+        print("Debug: update_actor")
         data = data.to('cuda')
 
         assert self._is_actor
@@ -399,27 +401,36 @@ class ActorRolloutRefWorker(Worker):
 
     @register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO)
     def generate_sequences(self, prompts: DataProto):
+        print("Debug: generate_sequences")
         prompts = prompts.to('cuda')
         # set to False if it is validation
         recompute_log_prob = prompts.meta_info.get('recompute_log_prob', True)
 
         assert self._is_rollout
+        print("Debug: checking _is_offload_param =", self._is_offload_param)
         if self._is_offload_param:
             load_fsdp_param_and_grad(module=self.actor_module_fsdp,
                                      device_id=torch.cuda.current_device(),
                                      load_grad=self._is_offload_grad)
-
+        print("Debug: before prompt cuda")
         prompts.batch = prompts.batch.cuda()
+        print("Debug: after prompt cuda")
         meta_info = {'eos_token_id': self.tokenizer.eos_token_id, 'pad_token_id': self.tokenizer.pad_token_id}
         prompts.meta_info.update(meta_info)
         with self.rollout_sharding_manager:
+            print("Debug: log_gpu_memory_usage - After entering rollout sharding manager")
             log_gpu_memory_usage('After entering rollout sharding manager', logger=logger)
 
+            print("Debug: preprocess_data")
             prompts = self.rollout_sharding_manager.preprocess_data(prompts)
+            
+            print("Debug: generate_sequences")
             output = self.rollout.generate_sequences(prompts=prompts)
 
+            print("Debug: log_gpu_memory_usage - After rollout generation")
             log_gpu_memory_usage('After rollout generation', logger=logger)
 
+            print("Debug: postprocess_data")
             output = self.rollout_sharding_manager.postprocess_data(output)
 
         if self._is_actor and recompute_log_prob:
@@ -697,6 +708,7 @@ class CriticWorker(Worker):
 
     @register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO)
     def update_critic(self, data: DataProto):
+        print(f"debug: Start updating critic")
         data = data.to('cuda')
         if self._is_offload_param:
             load_fsdp_param_and_grad(module=self.critic_module,

@@ -394,6 +394,23 @@ class RayPPOTrainer(object):
         data_source_lst = []
         for test_data in self.val_dataloader:
             test_batch = DataProto.from_single_dict(test_data)
+            print("debug: Batch keys:", test_batch.batch.keys())  # 打印所有tensor字段
+            print("debug: input_ids:", test_batch.batch['input_ids'].shape)  
+            print("debug: attention_mask:", test_batch.batch['attention_mask'].shape)  
+            print("debug: position_ids:", test_batch.batch['position_ids'].shape)  
+            
+            print("debug: Non-tensor keys:", test_batch.non_tensor_batch.keys())  # 打印非tensor字段
+            # Non-tensor keys: dict_keys(['data_source', 'ability', 'reward_model', 'extra_info', 'index'])
+
+            print("debug: data_source:", test_batch.non_tensor_batch['data_source'])
+            print("debug: ability:", test_batch.non_tensor_batch['ability'])
+            print("debug: reward_model:", test_batch.non_tensor_batch['reward_model'])
+            print("debug: extra_info:", test_batch.non_tensor_batch['extra_info'])
+            print("debug: index:", test_batch.non_tensor_batch['index'])
+            
+            
+            # 终止程序运行
+            # exit()
             # test_batch = test_batch.to('cuda')
 
             # we only do validation on rule-based rm
@@ -408,6 +425,8 @@ class RayPPOTrainer(object):
                 'do_sample': False,
                 'validate': True,
             }
+            print(f"debug: Meta info for validation batch: {test_gen_batch.meta_info}")
+            # {'eos_token_id': 151643, 'pad_token_id': 151643, 'recompute_log_prob': False, 'do_sample': False, 'validate': True}
 
             # pad to be divisible by dp_size
             test_gen_batch_padded, pad_size = pad_dataproto_to_divisor(test_gen_batch, self.actor_rollout_wg.world_size)
@@ -427,6 +446,8 @@ class RayPPOTrainer(object):
 
         reward_tensor = torch.cat(reward_tensor_lst, dim=0).sum(-1).cpu()  # (batch_size,)
         data_sources = np.concatenate(data_source_lst, axis=0)
+        print(f"debug: reward tensor: {reward_tensor}")
+        print(f"debug: data sources: {data_sources}")
         # evaluate test_score based on data source
         data_source_reward = {}
         for i in range(reward_tensor.shape[0]):
@@ -434,11 +455,11 @@ class RayPPOTrainer(object):
             if data_source not in data_source_reward:
                 data_source_reward[data_source] = []
             data_source_reward[data_source].append(reward_tensor[i].item())
-
+        print(f"debug: data_source_reward: {data_source_reward}")
         metric_dict = {}
         for data_source, rewards in data_source_reward.items():
             metric_dict[f'val/test_score/{data_source}'] = np.mean(rewards)
-
+        print(f"debug: metric_dict: {metric_dict}")
         return metric_dict
 
     def init_workers(self):
@@ -482,11 +503,11 @@ class RayPPOTrainer(object):
             resource_pool = self.resource_pool_manager.get_resource_pool(Role.RewardModel)
             rm_cls = RayClassWithInitArgs(self.role_worker_mapping[Role.RewardModel], config=self.config.reward_model)
             self.resource_pool_to_cls[resource_pool]['rm'] = rm_cls
-
         # initialize WorkerGroup
         # NOTE: if you want to use a different resource pool for each role, which can support different parallel size,
         # you should not use `create_colocated_worker_cls`. Instead, directly pass different resource pool to different worker groups.
         # See https://github.com/volcengine/verl/blob/master/examples/ray/tutorial.ipynb for more information.
+        print("Start initializing workergroups")
         all_wg = {}
         self.wg_dicts = []
         for resource_pool, class_dict in self.resource_pool_to_cls.items():
@@ -512,7 +533,7 @@ class RayPPOTrainer(object):
         # we should create rollout at the end so that vllm can have a better estimation of kv cache memory
         self.actor_rollout_wg = all_wg['actor_rollout']
         self.actor_rollout_wg.init_model()
-
+        print("End initializing workergroups")
     def _save_checkpoint(self):
         actor_local_path = os.path.join(self.config.trainer.default_local_dir, 'actor',
                                         f'global_step_{self.global_steps}')
@@ -586,7 +607,10 @@ class RayPPOTrainer(object):
                 with _timer('step', timing_raw):
                     # generate a batch
                     with _timer('gen', timing_raw):
+                        print("debug: Generate sequences to get old log probs")
+                        print(f"debug: batch keys: {gen_batch.keys()}")
                         gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
+                        print(f"debug: batch keys: {gen_batch_output.keys()}")
 
                     batch.non_tensor_batch['uid'] = np.array([str(uuid.uuid4()) for _ in range(len(batch.batch))],
                                                              dtype=object)
@@ -628,11 +652,14 @@ class RayPPOTrainer(object):
                         batch.batch['token_level_scores'] = reward_tensor
 
                         # compute rewards. apply_kl_penalty if available
+                        print(f"debug: self.config.actor_rollout_ref.actor.use_kl_loss: {self.config.actor_rollout_ref.actor.use_kl_loss}")
                         if not self.config.actor_rollout_ref.actor.use_kl_loss:
                             batch, kl_metrics = apply_kl_penalty(batch,
                                                                  kl_ctrl=self.kl_ctrl,
                                                                  kl_penalty=self.config.algorithm.kl_penalty)
+                            print(f"debug: kl_metrics {kl_metrics}")
                             metrics.update(kl_metrics)
+                            print(f"debug: metrics {metrics}")
                         else:
                             batch.batch['token_level_rewards'] = batch.batch['token_level_scores']
 

@@ -19,6 +19,15 @@ import socket
 from dataclasses import dataclass
 from verl.single_controller.base.decorator import register, Dispatch, Execute
 
+# modify
+# 设置分布式训练环境变量
+# os.environ.update({
+#     'WORLD_SIZE': '1',  # 使用1个GPU
+#     'RANK': '0',        # 主节点rank为0
+#     'MASTER_ADDR': 'localhost',  # 主节点地址
+#     'MASTER_PORT': '29500'       # 主节点端口
+# })
+
 
 @dataclass
 class DistRankInfo:

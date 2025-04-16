@@ -99,6 +99,8 @@ def main(config):
     if not ray.is_initialized():
         # this is for local ray cluster
         ray.init(runtime_env={'env_vars': {'TOKENIZERS_PARALLELISM': 'true', 'NCCL_DEBUG': 'WARN'}})
+        # 本地运行方便断点调试
+        # ray.init(local_mode=True, runtime_env={'env_vars': {'TOKENIZERS_PARALLELISM': 'true', 'NCCL_DEBUG': 'WARN'}}) 
 
     ray.get(main_task.remote(config))
 
@@ -111,6 +113,8 @@ def main_task(config):
     # print initial config
     from pprint import pprint
     from omegaconf import OmegaConf
+    # pprint(OmegaConf.to_yaml(config))
+    print("Train Config:")
     pprint(OmegaConf.to_container(config, resolve=True))  # resolve=True will eval symbol values
     OmegaConf.resolve(config)
 
@@ -187,6 +191,7 @@ def main_task(config):
                             reward_fn=reward_fn,
                             val_reward_fn=val_reward_fn)
     trainer.init_workers()
+    print("Start training")
     trainer.fit()
 
 

@@ -127,6 +127,7 @@ def compute_grpo_outcome_advantage(token_level_rewards: torch.Tensor,
         Returns: `(torch.Tensor)`
             shape: (bs, response_length)
     """
+    print(f"debug: GRPO token_level_rewards: {token_level_rewards}")
     response_length = token_level_rewards.shape[-1]
     non_zero_mask = (token_level_rewards != 0)
     scores = (token_level_rewards * non_zero_mask).sum(dim=-1)
@@ -152,6 +153,9 @@ def compute_grpo_outcome_advantage(token_level_rewards: torch.Tensor,
             scores[i] = (scores[i] - id2mean[index[i]]) / (id2std[index[i]] + epsilon)
         scores = scores.unsqueeze(-1).tile([1, response_length]) * eos_mask
 
+    # NOTE 只计算了第一个token的advantage？？
+    print(f"debug: grpo advantage: {scores}")
+    
     return scores, scores
 
 
@@ -231,6 +235,7 @@ def compute_value_loss(vpreds, returns, values, eos_mask, cliprange_value):
             The ratio of vf being clipped
 
     """
+    print("debug: Start computing value loss")
     vpredclipped = verl_F.clip_by_value(vpreds, values - cliprange_value, values + cliprange_value)
     vf_losses1 = (vpreds - returns)**2
     vf_losses2 = (vpredclipped - returns)**2

@@ -144,6 +144,7 @@ class DataParallelPPOCritic(BasePPOCritic):
         return values
 
     def update_critic(self, data: DataProto):
+        print(f"debug: Start update critic in dp_critic")
         # make sure we are in training mode
         self.critic_module.train()
         metrics = {}
