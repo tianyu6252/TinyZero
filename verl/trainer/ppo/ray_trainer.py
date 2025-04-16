@@ -608,9 +608,9 @@ class RayPPOTrainer(object):
                     # generate a batch
                     with _timer('gen', timing_raw):
                         print("debug: Generate sequences to get old log probs")
-                        print(f"debug: batch keys: {gen_batch.keys()}")
+                        print(f"debug: batch keys: {gen_batch.batch.keys()}")
                         gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
-                        print(f"debug: batch keys: {gen_batch_output.keys()}")
+                        print(f"debug: batch keys: {gen_batch_output.batch.keys()}")
 
                     batch.non_tensor_batch['uid'] = np.array([str(uuid.uuid4()) for _ in range(len(batch.batch))],
                                                              dtype=object)
